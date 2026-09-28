@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Vue 3 PWA Client for Retro-Pi Hub",
   "scripts": {
-    "build": "vite build",
+    "build": "tsc && cp -r static/* dist/",
     "test": "vitest run"
   },
   "dependencies": {

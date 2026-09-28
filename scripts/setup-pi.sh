@@ -28,8 +28,9 @@ echo "==> Installing npm workspace dependencies..."
 cd "$REPO_DIR"
 npm install
 
-echo "==> Building shared contracts and server daemon..."
+echo "==> Building shared contracts, client UI, and server daemon..."
 npm run build -w packages/shared
+npm run build -w packages/client
 npm run build -w packages/server
 
 # 3. Install RetroPie runcommand hooks

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Retro-Pi Hub 🎮</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#12131c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="hub-header">
+      <div class="brand">
+        <span class="pixel-icon">🕹️</span>
+        <div>
+          <h1>RETRO-PI HUB</h1>
+          <span class="tagline">Local Network Gaming & Cloud-Save Daemon</span>
+        </div>
+      </div>
+      <div class="header-status">
+        <div id="tv-status-badge" class="badge badge-tv-idle">📺 TV Livre</div>
+        <div class="badge badge-online">● Online</div>
+      </div>
+    </header>
+
+    <!-- TV Lock Notification Banner -->
+    <div id="tv-alert-banner" class="tv-alert hidden">
+      ⚠️ <strong>Sessão Ativa na TV:</strong> Um jogo está rodando no RetroPie na sala. Seus saves no navegador serão salvos em slot pessoal para evitar conflitos!
+    </div>
+
+    <!-- Main Catalog View -->
+    <main id="catalog-view" class="container">
+      <div class="controls-bar">
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="Buscar jogo..." autocomplete="off">
+        </div>
+        <div class="system-filters" id="system-filters">
+          <button class="filter-btn active" data-system="all">Todos</button>
+          <button class="filter-btn" data-system="snes">SNES</button>
+          <button class="filter-btn" data-system="gba">GBA</button>
+          <button class="filter-btn" data-system="megadrive">Mega Drive</button>
+          <button class="filter-btn" data-system="nes">NES</button>
+          <button class="filter-btn" data-system="gb">Game Boy</button>
+          <button class="filter-btn" data-system="mastersystem">Master System</button>
+          <button class="filter-btn" data-system="psx">PSX</button>
+        </div>
+      </div>
+
+      <div class="stats-bar">
+        <span id="game-counter">Carregando catálogo...</span>
+      </div>
+
+      <div class="game-grid" id="game-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </main>
+
+    <!-- Player View (Fullscreen / Modal) -->
+    <section id="player-view" class="player-container hidden">
+      <div class="player-topbar">
+        <button id="btn-back-catalog" class="btn btn-secondary">← Catálogo</button>
+        <div class="player-game-info">
+          <span id="player-game-title" class="player-title">Jogo</span>
+          <span id="player-sync-status" class="sync-status">💾 Pronto</span>
+        </div>
+        <div class="player-actions">
+          <button id="btn-netplay-open" class="btn btn-netplay">👥 2P Netplay</button>
+          <button id="btn-fullscreen" class="btn btn-icon">⛶</button>
+        </div>
+      </div>
+
+      <div class="emulator-viewport" id="emulator-viewport">
+        <div id="game-container"></div>
+      </div>
+
+      <!-- On-Screen Virtual Gamepad (Mobile / Touch Devices) -->
+      <div id="virtual-gamepad" class="virtual-gamepad">
+        <div class="dpad-container">
+          <button class="dpad-btn dpad-up" data-btn="up">▲</button>
+          <div class="dpad-row">
+            <button class="dpad-btn dpad-left" data-btn="left">◀</button>
+            <div class="dpad-center"></div>
+            <button class="dpad-btn dpad-right" data-btn="right">▶</button>
+          </div>
+          <button class="dpad-btn dpad-down" data-btn="down">▼</button>
+        </div>
+
+        <div class="center-buttons">
+          <button class="pill-btn" data-btn="select">SELECT</button>
+          <button class="pill-btn" data-btn="start">START</button>
+        </div>
+
+        <div class="action-buttons">
+          <div class="action-row">
+            <button class="action-btn btn-x" data-btn="x">X</button>
+          </div>
+          <div class="action-row">
+            <button class="action-btn btn-y" data-btn="y">Y</button>
+            <button class="action-btn btn-a" data-btn="a">A</button>
+          </div>
+          <div class="action-row">
+            <button class="action-btn btn-b" data-btn="b">B</button>
+          </div>
+        </div>
+
+        <div class="shoulder-buttons">
+          <button class="shoulder-btn shoulder-l" data-btn="l">L</button>
+          <button class="shoulder-btn shoulder-r" data-btn="r">R</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2P Netplay Modal -->
+    <div id="netplay-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <button id="btn-netplay-close" class="modal-close">&times;</button>
+        <h3>👥 2P WebRTC Netplay</h3>
+        <p>Aproxime a câmera do smartphone do Jogador 2 para ler o QR Code ou compartilhe o link direto:</p>
+        
+        <div id="qr-container" class="qr-container"></div>
+
+        <div class="share-box">
+          <input type="text" id="share-link-input" readonly>
+          <button id="btn-copy-link" class="btn btn-secondary">Copiar Link</button>
+        </div>
+
+        <div class="netplay-status" id="netplay-status-msg">
+          Aguardando conexão P2P do Jogador 2...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

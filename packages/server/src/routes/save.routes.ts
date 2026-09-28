@@ -9,6 +9,12 @@ export interface SaveRoutesOptions {
 }
 
 export async function saveRoutes(app: FastifyInstance, options: SaveRoutesOptions) {
+  // Global TV Lock Status for Hub Header Badge
+  app.get('/api/saves/tv_lock_status', async (_request, reply) => {
+    const status = await options.tvLockService.getGlobalTvStatus();
+    return reply.status(200).send(status);
+  });
+
   // Lock status check
   app.get<{
     Params: { system: string; rom: string };

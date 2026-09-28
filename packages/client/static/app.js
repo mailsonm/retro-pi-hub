@@ -58,8 +58,11 @@ const btnSettingsClose = document.getElementById('btn-settings-close');
 const raUsernameInput = document.getElementById('ra-username');
 const raTokenInput = document.getElementById('ra-token');
 const settingTouchControls = document.getElementById('setting-touch-controls');
-const settingGbaCore = document.getElementById('setting-gba-core');
+const settingThreads = document.getElementById('setting-threads');
 const btnSaveSettings = document.getElementById('btn-save-settings');
+
+// Purge any stale GBA core overrides
+localStorage.removeItem('hub_gba_core');
 
 // Netplay Modal Elements
 const btnNetplayOpen = document.getElementById('btn-netplay-open');
@@ -322,12 +325,13 @@ async function launchPlayer(game) {
   const container = document.getElementById('game-container');
   container.innerHTML = '<div id="game" style="width:100%;height:100%;"></div>';
 
-  const gbaCoreSetting = localStorage.getItem('hub_gba_core') || 'vbam';
+  const enableThreads = localStorage.getItem('hub_threads') !== 'false';
   window.EJS_player = '#game';
-  window.EJS_core = (game.system === 'gba') ? gbaCoreSetting : (game.coreName || 'snes9x');
+  window.EJS_core = game.coreName || 'snes9x';
   window.EJS_gameUrl = `/api/roms/${encodeURIComponent(game.system)}/${encodeURIComponent(game.fileName)}`;
   window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
   window.EJS_startOnLoaded = true;
+  window.EJS_threads = enableThreads;
 
   // Configure EmulatorJS Buttons (Save state, load state, settings, gamepad mapper)
   window.EJS_Buttons = {
@@ -482,13 +486,13 @@ function quitCurrentGame() {
 
 btnCloseActiveGame.addEventListener('click', quitCurrentGame);
 
-// 6. Settings Modal (RetroAchievements, Touch & GBA Core)
+// 6. Settings Modal (RetroAchievements, Touch & Performance)
 btnOpenSettings.addEventListener('click', () => {
   raUsernameInput.value = localStorage.getItem('hub_ra_username') || '';
   raTokenInput.value = localStorage.getItem('hub_ra_token') || '';
   settingTouchControls.checked = localStorage.getItem('hub_touch_controls') !== 'false';
-  if (settingGbaCore) {
-    settingGbaCore.value = localStorage.getItem('hub_gba_core') || 'vbam';
+  if (settingThreads) {
+    settingThreads.checked = localStorage.getItem('hub_threads') !== 'false';
   }
   settingsModal.classList.remove('hidden');
 });
@@ -501,8 +505,8 @@ btnSaveSettings.addEventListener('click', () => {
   localStorage.setItem('hub_ra_username', raUsernameInput.value.trim());
   localStorage.setItem('hub_ra_token', raTokenInput.value.trim());
   localStorage.setItem('hub_touch_controls', settingTouchControls.checked ? 'true' : 'false');
-  if (settingGbaCore) {
-    localStorage.setItem('hub_gba_core', settingGbaCore.value);
+  if (settingThreads) {
+    localStorage.setItem('hub_threads', settingThreads.checked ? 'true' : 'false');
   }
 
   settingsModal.classList.add('hidden');

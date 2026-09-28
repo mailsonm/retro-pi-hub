@@ -48,6 +48,14 @@ export class TvLockService {
     };
   }
 
+  async getGlobalTvStatus(): Promise<{ active: boolean; session?: TvSessionHookData }> {
+    const activeSession = await this.readHookFile();
+    return {
+      active: !!activeSession,
+      session: activeSession || undefined
+    };
+  }
+
   private async readHookFile(): Promise<TvSessionHookData | null> {
     try {
       const content = await fs.readFile(this.lockFilePath, 'utf8');

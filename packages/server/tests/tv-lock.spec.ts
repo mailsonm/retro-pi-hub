@@ -83,4 +83,28 @@ describe('Seam: Active TV Session Lock Detector (Ticket #04)', () => {
     expect(body.isLocked).toBe(false);
     expect(body.activeOnTv).toBe(false);
   });
+
+  it('GET /api/saves/tv_lock_status should report global TV status', async () => {
+    const idleRes = await app.inject({
+      method: 'GET',
+      url: '/api/saves/tv_lock_status'
+    });
+    expect(idleRes.statusCode).toBe(200);
+    expect(idleRes.json()).toEqual({ active: false });
+
+    const lockPayload = {
+      system: 'snes',
+      romName: 'Super Mario World',
+      startedAt: '2026-09-27T12:00:00.000Z'
+    };
+    await fs.writeFile(lockFilePath, JSON.stringify(lockPayload));
+
+    const activeRes = await app.inject({
+      method: 'GET',
+      url: '/api/saves/tv_lock_status'
+    });
+    expect(activeRes.statusCode).toBe(200);
+    expect(activeRes.json().active).toBe(true);
+    expect(activeRes.json().session.romName).toBe('Super Mario World');
+  });
 });

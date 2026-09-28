@@ -183,14 +183,12 @@
           </div>
 
           <div class="form-section">
-            <h4>⚡ Motor GBA (Desempenho Mobile 60 FPS)</h4>
-            <label for="setting-gba-core">Núcleo Game Boy Advance:</label>
-            <select id="setting-gba-core" class="form-select">
-              <option value="vbam">VBA-M (Recomendado - 60 FPS fluído)</option>
-              <option value="gpsp">gpSP (Ultraleve para celulares básicos)</option>
-              <option value="mgba">mGBA (Ciclo-preciso - mais pesado)</option>
-            </select>
-            <p class="section-hint">Se jogos de GBA ficarem lentos (~45 FPS) no smartphone, selecione VBA-M ou gpSP.</p>
+            <h4>⚡ Desempenho e Multithreading</h4>
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-threads" checked>
+              <span>Ativar aceleração WebAssembly multithread</span>
+            </label>
+            <p class="section-hint">Acelera o processamento de emuladores pesados (como mGBA) em dispositivos compatíveis.</p>
           </div>
 
           <button id="btn-save-settings" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Salvar Configurações</button>

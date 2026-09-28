@@ -15,11 +15,10 @@ echo "Repository Path: $REPO_DIR"
 echo "Target User:     $USER_NAME"
 echo ""
 
-# 1. Check or install Node.js 20+
-if ! command -v node >/dev/null 2>&1 || [ "$(node -v | cut -d'v' -f2 | cut -d'.' -f1)" -lt 20 ]; then
-    echo "==> Node.js 20+ not detected. Installing Node.js LTS from NodeSource..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    sudo apt-get install -y nodejs build-essential
+# 1. Check or install Node.js 18+
+if ! command -v node >/dev/null 2>&1 || [ "$(node -v | cut -d'v' -f2 | cut -d'.' -f1)" -lt 18 ]; then
+    echo "==> Node.js 18+ not detected. Installing Node.js 18 LTS for ARMv7..."
+    curl -fsSL https://nodejs.org/dist/v18.20.4/node-v18.20.4-linux-armv7l.tar.xz | sudo tar -xJ --strip-components=1 -C /usr/local
 else
     echo "==> Node.js detected: $(node -v) (npm $(npm -v))"
 fi

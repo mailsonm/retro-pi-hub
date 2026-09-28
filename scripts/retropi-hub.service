@@ -8,7 +8,8 @@ Type=simple
 User=pi
 Group=pi
 WorkingDirectory=/home/pi/retro-pi-hub
-ExecStart=/usr/bin/npm start --workspace=@retro-pi-hub/server
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/node /home/pi/retro-pi-hub/packages/server/dist/index.js
 Restart=always
 RestartSec=5
 KillMode=process

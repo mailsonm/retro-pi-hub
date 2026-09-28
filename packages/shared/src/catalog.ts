@@ -41,6 +41,24 @@ export const SUPPORTED_SYSTEMS: Record<string, SystemDefinition> = {
     name: 'Sony PlayStation',
     coreName: 'pcsx_rearmed',
     extensions: ['.chd', '.cue', '.iso', '.pbp']
+  },
+  mastersystem: {
+    system: 'mastersystem',
+    name: 'Sega Master System',
+    coreName: 'genesis_plus_gx',
+    extensions: ['.sms', '.zip']
+  },
+  sega32x: {
+    system: 'sega32x',
+    name: 'Sega 32X',
+    coreName: 'picodrive',
+    extensions: ['.32x', '.zip']
+  },
+  n64: {
+    system: 'n64',
+    name: 'Nintendo 64',
+    coreName: 'mupen64plus_next',
+    extensions: ['.n64', '.v64', '.z64', '.zip']
   }
 };
 

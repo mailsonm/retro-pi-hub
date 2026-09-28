@@ -6,6 +6,9 @@ import { generateJoinQrSvg } from './services/netplay-coordinator.service.js';
 // State
 let allGames = [];
 let currentFilter = 'all';
+let currentGenre = 'all';
+let filterPtBrOnly = false;
+let filterMultiplayerOnly = false;
 let currentSearch = '';
 let activeRunningGame = null;
 let currentSaveSyncManager = null;
@@ -17,19 +20,15 @@ const playerView = document.getElementById('player-view');
 const gameGrid = document.getElementById('game-grid');
 const searchInput = document.getElementById('search-input');
 const systemFilters = document.getElementById('system-filters');
+const filterChipPtbr = document.getElementById('filter-chip-ptbr');
+const filterChipMultiplayer = document.getElementById('filter-chip-multiplayer');
+const genreSelect = document.getElementById('genre-select');
 const gameCounter = document.getElementById('game-counter');
 const tvStatusBadge = document.getElementById('tv-status-badge');
 const tvAlertBanner = document.getElementById('tv-alert-banner');
 
 // Player Elements
-const playerGameTitle = document.getElementById('player-game-title');
-const playerSyncStatus = document.getElementById('player-sync-status');
-const btnBackCatalog = document.getElementById('btn-back-catalog');
-const btnFullscreen = document.getElementById('btn-fullscreen');
-const btnQuitGame = document.getElementById('btn-quit-game');
-const btnControlsSettings = document.getElementById('btn-controls-settings');
-const btnSaveState = document.getElementById('btn-save-state');
-const btnLoadState = document.getElementById('btn-load-state');
+const btnFloatBack = document.getElementById('btn-float-back');
 
 // Active Game Banner Elements
 const activeGameBanner = document.getElementById('active-game-banner');
@@ -59,6 +58,7 @@ const btnSettingsClose = document.getElementById('btn-settings-close');
 const raUsernameInput = document.getElementById('ra-username');
 const raTokenInput = document.getElementById('ra-token');
 const settingTouchControls = document.getElementById('setting-touch-controls');
+const settingGbaCore = document.getElementById('setting-gba-core');
 const btnSaveSettings = document.getElementById('btn-save-settings');
 
 // Netplay Modal Elements
@@ -120,15 +120,22 @@ async function checkTvLock() {
 function renderGames() {
   const filtered = allGames.filter(game => {
     const matchesSystem = (currentFilter === 'all') || (game.system === currentFilter);
+    const matchesGenre = (currentGenre === 'all') || (game.genre && game.genre.toLowerCase().includes(currentGenre.toLowerCase()));
+
+    const isPt = game.language === 'pt-br' || /(\b|_|-)(brazil|brasil|portugu[eê]s|t-por|pt-br)(\b|_|-)/i.test(game.fileName + ' ' + (game.title || ''));
+    const matchesPtBr = !filterPtBrOnly || isPt;
+
+    const matchesMulti = !filterMultiplayerOnly || (game.players && game.players >= 2);
+
     const q = currentSearch.toLowerCase().trim();
-    if (!q) return matchesSystem;
+    if (!q) return matchesSystem && matchesGenre && matchesPtBr && matchesMulti;
 
     const matchesTitle = game.title.toLowerCase().includes(q);
-    const matchesGenre = game.genre && game.genre.toLowerCase().includes(q);
+    const matchesGenreText = game.genre && game.genre.toLowerCase().includes(q);
     const matchesDev = game.developer && game.developer.toLowerCase().includes(q);
     const matchesYear = game.releaseDate && game.releaseDate.includes(q);
 
-    return matchesSystem && (matchesTitle || matchesGenre || matchesDev || matchesYear);
+    return matchesSystem && matchesGenre && matchesPtBr && matchesMulti && (matchesTitle || matchesGenreText || matchesDev || matchesYear);
   });
 
   gameCounter.textContent = `${filtered.length} jogos encontrados (${allGames.length} no total)`;
@@ -147,6 +154,10 @@ function renderGames() {
     const sizeText = sizeMb > 0.1 ? `${sizeMb} MB` : `${Math.round(game.fileSizeBytes / 1024)} KB`;
     const saveBadge = game.hasSramSave ? '<div class="card-save-status">💾 Save Sincronizado</div>' : '';
     const genreText = game.genre ? `<div class="game-subinfo">${escapeHtml(game.genre)}</div>` : '';
+
+    const isPt = game.language === 'pt-br' || /(\b|_|-)(brazil|brasil|portugu[eê]s|t-por|pt-br)(\b|_|-)/i.test(game.fileName + ' ' + (game.title || ''));
+    const ptbrBadge = isPt ? '<span class="badge-ptbr" title="Jogo Traduzido para Português">🇧🇷 PT-BR</span>' : '';
+    const playersBadge = (game.players && game.players >= 2) ? `<span class="badge-multiplayer" title="Multijogador ${game.players} Jogadores">👥 ${game.players}P</span>` : '';
 
     const coverHtml = game.boxartUrl ? `
       <img class="card-cover" src="${escapeHtml(game.boxartUrl)}" alt="${escapeHtml(game.title)}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -173,6 +184,10 @@ function renderGames() {
         <div class="card-content">
           <div>
             <h3 class="game-title" title="${escapeHtml(game.title)}">${escapeHtml(game.title)}</h3>
+            <div class="card-tags">
+              ${ptbrBadge}
+              ${playersBadge}
+            </div>
             ${genreText}
             ${saveBadge}
           </div>
@@ -274,8 +289,6 @@ async function launchPlayer(game) {
 
   catalogView.classList.add('hidden');
   playerView.classList.remove('hidden');
-  playerGameTitle.textContent = `${game.title} (${game.system.toUpperCase()})`;
-  playerSyncStatus.textContent = 'Carregando...';
 
   // Setup SaveSyncManager
   currentSaveSyncManager = new SaveSyncManager({
@@ -301,7 +314,6 @@ async function launchPlayer(game) {
         const err = await res.json().catch(() => ({}));
         throw { statusCode: res.status, ...err };
       }
-      playerSyncStatus.textContent = '💾 Salvo no Hub';
       return { success: true };
     }
   });
@@ -310,8 +322,9 @@ async function launchPlayer(game) {
   const container = document.getElementById('game-container');
   container.innerHTML = '<div id="game" style="width:100%;height:100%;"></div>';
 
+  const gbaCoreSetting = localStorage.getItem('hub_gba_core') || 'vbam';
   window.EJS_player = '#game';
-  window.EJS_core = game.coreName || 'snes9x';
+  window.EJS_core = (game.system === 'gba') ? gbaCoreSetting : (game.coreName || 'snes9x');
   window.EJS_gameUrl = `/api/roms/${encodeURIComponent(game.system)}/${encodeURIComponent(game.fileName)}`;
   window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
   window.EJS_startOnLoaded = true;
@@ -359,12 +372,9 @@ async function launchPlayer(game) {
     if (saveRes.ok) {
       const saveBlob = await saveRes.blob();
       window.EJS_loadStateURL = URL.createObjectURL(saveBlob);
-      playerSyncStatus.textContent = '💾 Save Carregado';
-    } else {
-      playerSyncStatus.textContent = 'Novo Jogo';
     }
   } catch {
-    playerSyncStatus.textContent = 'Novo Jogo';
+    // ignore
   }
 
   // Load loader.js dynamically if not present
@@ -379,12 +389,43 @@ async function launchPlayer(game) {
   }
 }
 
-// 5. Minimize & Resume Handling (Keep-Alive)
-btnBackCatalog.addEventListener('click', () => {
+// 5. Minimize & Resume Handling (Keep-Alive & Auto-Pause)
+function pauseEmulator() {
+  try {
+    if (window.EJS_emulator?.gameManager?.pause) {
+      window.EJS_emulator.gameManager.pause();
+    } else if (typeof window.EJS_emulator?.pause === 'function') {
+      window.EJS_emulator.pause();
+    }
+    if (window.EJS_emulator?.audioCtx && window.EJS_emulator.audioCtx.state === 'running') {
+      window.EJS_emulator.audioCtx.suspend().catch(() => {});
+    }
+  } catch (e) {
+    console.warn('Could not pause emulator:', e);
+  }
+}
+
+function resumeEmulator() {
+  try {
+    if (window.EJS_emulator?.gameManager?.resume) {
+      window.EJS_emulator.gameManager.resume();
+    } else if (typeof window.EJS_emulator?.resume === 'function') {
+      window.EJS_emulator.resume();
+    }
+    if (window.EJS_emulator?.audioCtx && window.EJS_emulator.audioCtx.state === 'suspended') {
+      window.EJS_emulator.audioCtx.resume().catch(() => {});
+    }
+  } catch (e) {
+    console.warn('Could not resume emulator:', e);
+  }
+}
+
+btnFloatBack?.addEventListener('click', () => {
   minimizePlayer();
 });
 
 function minimizePlayer() {
+  pauseEmulator();
   playerView.classList.add('hidden');
   catalogView.classList.remove('hidden');
   updateActiveGameBanner();
@@ -394,6 +435,7 @@ function resumeActiveGame() {
   if (!activeRunningGame) return;
   catalogView.classList.add('hidden');
   playerView.classList.remove('hidden');
+  resumeEmulator();
 }
 
 btnResumeGame.addEventListener('click', () => {
@@ -415,62 +457,39 @@ function quitCurrentGame() {
   if (currentSaveSyncManager && currentSaveSyncManager.hasUncommittedChanges()) {
     currentSaveSyncManager.handlePageUnload();
   }
+
+  pauseEmulator();
+  try {
+    if (window.EJS_emulator?.audioCtx) {
+      window.EJS_emulator.audioCtx.close().catch(() => {});
+    }
+  } catch {}
+
   activeRunningGame = null;
   currentSaveSyncManager = null;
-  document.getElementById('game-container').innerHTML = '';
+
+  const container = document.getElementById('game-container');
+  if (container) container.innerHTML = '';
+
+  try {
+    delete window.EJS_emulator;
+  } catch {}
+
   activeGameBanner.classList.add('hidden');
   playerView.classList.add('hidden');
   catalogView.classList.remove('hidden');
 }
 
-btnQuitGame.addEventListener('click', quitCurrentGame);
 btnCloseActiveGame.addEventListener('click', quitCurrentGame);
 
-// 6. Player Toolbar Actions (EmulatorJS Trigger Hooks)
-btnControlsSettings.addEventListener('click', () => {
-  // Trigger EmulatorJS native gamepad/controls modal
-  const gamepadBtn = document.querySelector('.ejs_gamepad, [data-btn="gamepad"], button[title*="gamepad" i]');
-  if (gamepadBtn) {
-    gamepadBtn.click();
-  } else if (window.EJS_emulator && typeof window.EJS_emulator.openSettings === 'function') {
-    window.EJS_emulator.openSettings('gamepad');
-  } else {
-    alert('Abra o menu de configurações na barra inferior do emulador para mapear controles e teclado.');
-  }
-});
-
-btnSaveState.addEventListener('click', () => {
-  const saveBtn = document.querySelector('.ejs_saveState, [data-btn="saveState"], button[title*="save state" i]');
-  if (saveBtn) {
-    saveBtn.click();
-  } else if (window.EJS_emulator && typeof window.EJS_emulator.saveState === 'function') {
-    window.EJS_emulator.saveState();
-  }
-});
-
-btnLoadState.addEventListener('click', () => {
-  const loadBtn = document.querySelector('.ejs_loadState, [data-btn="loadState"], button[title*="load state" i]');
-  if (loadBtn) {
-    loadBtn.click();
-  } else if (window.EJS_emulator && typeof window.EJS_emulator.loadState === 'function') {
-    window.EJS_emulator.loadState();
-  }
-});
-
-// Fullscreen Toggle
-btnFullscreen.addEventListener('click', () => {
-  if (!document.fullscreenElement) {
-    playerView.requestFullscreen().catch(() => {});
-  } else {
-    document.exitFullscreen().catch(() => {});
-  }
-});
-
-// 7. Settings Modal (RetroAchievements & Touch Toggle)
+// 6. Settings Modal (RetroAchievements, Touch & GBA Core)
 btnOpenSettings.addEventListener('click', () => {
   raUsernameInput.value = localStorage.getItem('hub_ra_username') || '';
   raTokenInput.value = localStorage.getItem('hub_ra_token') || '';
   settingTouchControls.checked = localStorage.getItem('hub_touch_controls') !== 'false';
+  if (settingGbaCore) {
+    settingGbaCore.value = localStorage.getItem('hub_gba_core') || 'vbam';
+  }
   settingsModal.classList.remove('hidden');
 });
 
@@ -482,12 +501,15 @@ btnSaveSettings.addEventListener('click', () => {
   localStorage.setItem('hub_ra_username', raUsernameInput.value.trim());
   localStorage.setItem('hub_ra_token', raTokenInput.value.trim());
   localStorage.setItem('hub_touch_controls', settingTouchControls.checked ? 'true' : 'false');
+  if (settingGbaCore) {
+    localStorage.setItem('hub_gba_core', settingGbaCore.value);
+  }
 
   settingsModal.classList.add('hidden');
   alert('Configurações salvas com sucesso! As alterações serão aplicadas na próxima sessão.');
 });
 
-// 8. 2P Netplay Modal
+// 7. 2P Netplay Modal
 btnNetplayOpen.addEventListener('click', () => {
   const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   const host = window.location.hostname;
@@ -511,9 +533,26 @@ btnCopyLink.addEventListener('click', () => {
   });
 });
 
-// 9. Search & System Filter Listeners
+// 8. Filters & Search Listeners
 searchInput.addEventListener('input', (e) => {
   currentSearch = e.target.value;
+  renderGames();
+});
+
+filterChipPtbr?.addEventListener('click', () => {
+  filterPtBrOnly = !filterPtBrOnly;
+  filterChipPtbr.classList.toggle('active', filterPtBrOnly);
+  renderGames();
+});
+
+filterChipMultiplayer?.addEventListener('click', () => {
+  filterMultiplayerOnly = !filterMultiplayerOnly;
+  filterChipMultiplayer.classList.toggle('active', filterMultiplayerOnly);
+  renderGames();
+});
+
+genreSelect?.addEventListener('change', (e) => {
+  currentGenre = e.target.value;
   renderGames();
 });
 

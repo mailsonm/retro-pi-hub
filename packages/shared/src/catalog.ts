@@ -81,6 +81,8 @@ export interface RomItemDTO {
   releaseDate?: string;
   developer?: string;
   publisher?: string;
+  players?: number;
+  language?: string;
 }
 
 export interface SystemCatalogDTO {

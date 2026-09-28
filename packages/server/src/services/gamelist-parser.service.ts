@@ -12,6 +12,8 @@ export interface ParsedGameMetadata {
   releaseDate?: string;
   developer?: string;
   publisher?: string;
+  players?: number;
+  lang?: string;
 }
 
 export class GamelistParserService {
@@ -49,6 +51,15 @@ export class GamelistParserService {
       const ratingStr = this.extractTag(block, 'rating');
       const rating = ratingStr ? parseFloat(ratingStr) : undefined;
 
+      const playersStr = this.extractTag(block, 'players');
+      let players: number | undefined;
+      if (playersStr) {
+        const numbers = playersStr.match(/\d+/g);
+        if (numbers && numbers.length > 0) {
+          players = parseInt(numbers[numbers.length - 1], 10);
+        }
+      }
+
       const normalizeAssetPath = (val?: string) => {
         if (!val) return undefined;
         return val.replace(/^\.\//, '').trim();
@@ -64,7 +75,9 @@ export class GamelistParserService {
         rating: typeof rating === 'number' && !isNaN(rating) ? rating : undefined,
         releaseDate: this.extractTag(block, 'releasedate'),
         developer: this.extractTag(block, 'developer'),
-        publisher: this.extractTag(block, 'publisher')
+        publisher: this.extractTag(block, 'publisher'),
+        players,
+        lang: this.extractTag(block, 'lang')
       };
 
       this.gamesByExactFile.set(fileName.toLowerCase(), meta);

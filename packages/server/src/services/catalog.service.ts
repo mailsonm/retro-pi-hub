@@ -50,7 +50,7 @@ export class CatalogService {
       await parser.load(gamelistPath);
 
       const romFiles = await fs.readdir(systemPath);
-      const games: RomItemDTO[] = [];
+      const gamesByCanonical = new Map<string, { item: RomItemDTO; score: number }>();
 
       for (const file of romFiles) {
         // Skip hidden and system noise files
@@ -78,29 +78,44 @@ export class CatalogService {
 
         if (meta?.image) {
           boxartUrl = `/api/media/${entry}/${meta.image}`;
+        } else if (meta?.thumbnail) {
+          boxartUrl = `/api/media/${entry}/${meta.thumbnail}`;
         }
+
         if (meta?.thumbnail) {
           thumbnailUrl = `/api/media/${entry}/${meta.thumbnail}`;
+        } else if (meta?.image) {
+          thumbnailUrl = `/api/media/${entry}/${meta.image}`;
         }
 
         // Fallback artwork lookup if not in gamelist
         if (!boxartUrl) {
           const possibleThumbs = [
             `images/${baseName}-image.jpg`,
+            `images/${baseName}-image.png`,
             `images/${baseName}-thumb.jpg`,
+            `images/${baseName}-thumb.png`,
             `images/${baseName}.png`,
+            `images/${baseName}.jpg`,
             `media/images/${baseName}.png`,
-            `media/box3d/${baseName}.png`
+            `media/images/${baseName}.jpg`,
+            `media/box3d/${baseName}.png`,
+            `media/box3d/${baseName}.jpg`
           ];
           for (const rel of possibleThumbs) {
             if (await this.fileExists(path.join(systemPath, rel))) {
               boxartUrl = `/api/media/${entry}/${rel}`;
+              thumbnailUrl = boxartUrl;
               break;
             }
           }
         }
 
-        games.push({
+        // Compute priority score & language
+        const { score, language } = this.computeRomScore(file, meta, hasSram);
+        const canonicalKey = this.extractCanonicalKey(file, meta?.name);
+
+        const currentItem: RomItemDTO = {
           id: `${entry}-${this.slugify(baseName)}`,
           system: entry,
           title: meta?.name || baseName,
@@ -114,9 +129,46 @@ export class CatalogService {
           rating: meta?.rating,
           releaseDate: meta?.releaseDate,
           developer: meta?.developer,
-          publisher: meta?.publisher
-        });
+          publisher: meta?.publisher,
+          players: meta?.players || 1,
+          language
+        };
+
+        const existing = gamesByCanonical.get(canonicalKey);
+        if (!existing) {
+          gamesByCanonical.set(canonicalKey, { item: currentItem, score });
+        } else {
+          // If current candidate scores higher (e.g., PT-BR vs USA, or .zip vs .smc)
+          if (score > existing.score) {
+            // Inherit SRAM save flag if previous had it
+            if (existing.item.hasSramSave) {
+              currentItem.hasSramSave = true;
+            }
+            // Inherit artwork/metadata if candidate lacked it
+            if (!currentItem.boxartUrl && existing.item.boxartUrl) {
+              currentItem.boxartUrl = existing.item.boxartUrl;
+              currentItem.thumbnailUrl = existing.item.thumbnailUrl;
+            }
+            if (!currentItem.description && existing.item.description) {
+              currentItem.description = existing.item.description;
+            }
+            gamesByCanonical.set(canonicalKey, { item: currentItem, score });
+          } else {
+            // Existing is preferred, but merge any missing artwork/metadata from candidate
+            if (!existing.item.boxartUrl && boxartUrl) {
+              existing.item.boxartUrl = boxartUrl;
+              existing.item.thumbnailUrl = thumbnailUrl || boxartUrl;
+            }
+            if (hasSram) {
+              existing.item.hasSramSave = true;
+            }
+          }
+        }
       }
+
+      const games = Array.from(gamesByCanonical.values())
+        .map(entry => entry.item)
+        .sort((a, b) => a.title.localeCompare(b.title));
 
       catalog.push({
         system: entry,
@@ -128,6 +180,72 @@ export class CatalogService {
     }
 
     return catalog;
+  }
+
+  private extractCanonicalKey(fileName: string, title?: string): string {
+    const raw = title || path.basename(fileName, path.extname(fileName));
+    // Remove bracketed tags like [T-Por], [!], [b1], etc.
+    // Remove parenthesized tags like (USA), (Europe), (Brazil), (Rev 1), etc.
+    const clean = raw
+      .replace(/\s*\[[^\]]*\]\s*/g, ' ')
+      .replace(/\s*\([^\)]*\)\s*/g, ' ')
+      .trim();
+    return this.slugify(clean || raw);
+  }
+
+  private computeRomScore(
+    file: string,
+    meta: { desc?: string; lang?: string; image?: string; thumbnail?: string } | null,
+    hasSram: boolean
+  ): { score: number; language: string } {
+    let score = 0;
+    let language = 'en';
+
+    const lowerName = file.toLowerCase();
+    const lowerDesc = (meta?.desc || '').toLowerCase();
+    const metaLang = (meta?.lang || '').toLowerCase();
+
+    const isPtBr =
+      /(\b|_|-)(brazil|brasil|portugu[eê]s|t-por|pt-br|pt)(\b|_|-)/i.test(lowerName) ||
+      metaLang === 'pt-br' ||
+      metaLang === 'pt' ||
+      lowerDesc.includes('traduzido') ||
+      lowerDesc.includes('português') ||
+      lowerDesc.includes('portugues');
+
+    if (isPtBr) {
+      score += 1000;
+      language = 'pt-br';
+    } else if (/(\b|_|-)(usa|us|en)(\b|_|-)/i.test(lowerName)) {
+      score += 500;
+      language = 'en';
+    } else if (/(\b|_|-)(europe|eur)(\b|_|-)/i.test(lowerName)) {
+      score += 400;
+      language = 'en';
+    } else if (/(\b|_|-)(japan|jp)(\b|_|-)/i.test(lowerName)) {
+      score += 300;
+      language = 'ja';
+    }
+
+    // Compressed formats load faster and save disk space
+    if (lowerName.endsWith('.zip')) {
+      score += 100;
+    }
+
+    // Preserve existing save files
+    if (hasSram) {
+      score += 200;
+    }
+
+    // Gamelist metadata quality
+    if (meta?.image || meta?.thumbnail) {
+      score += 50;
+    }
+    if (meta?.desc) {
+      score += 20;
+    }
+
+    return { score, language };
   }
 
   private async checkSramExists(system: string, baseName: string, fileName: string): Promise<boolean> {

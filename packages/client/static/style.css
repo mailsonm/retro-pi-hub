@@ -188,6 +188,103 @@ body {
   margin-bottom: 20px;
 }
 
+.filter-chips-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.filter-chip {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+}
+
+.filter-chip:hover {
+  background: var(--bg-card);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.filter-chip.active {
+  background: rgba(0, 242, 254, 0.15);
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+}
+
+.genre-select-dropdown,
+.form-select {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.genre-select-dropdown:focus,
+.form-select:focus {
+  border-color: var(--accent-cyan);
+}
+
+.form-select {
+  border-radius: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  margin-top: 6px;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+.badge-ptbr {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.badge-multiplayer {
+  background: rgba(121, 40, 202, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(121, 40, 202, 0.4);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
 /* Game Grid with Boxart */
 .game-grid {
   display: grid;
@@ -442,59 +539,62 @@ body {
   gap: 10px;
 }
 
-/* Player View */
+/* Player View (Clean Canvas + Floating Back Button) */
 .player-container {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100vw;
   height: 100vh;
   background: #000;
   z-index: 100;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
 }
 
-.player-topbar {
-  display: flex;
-  justify-content: space-between;
+.btn-float-back {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 9999;
+  display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 8px 16px;
-  background: rgba(22, 24, 36, 0.95);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 110;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.player-game-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.player-title {
+  border-radius: 9999px;
+  background: rgba(18, 19, 28, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 0.85rem;
   font-weight: 700;
-  font-size: 1rem;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  opacity: 0.35;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  user-select: none;
 }
 
-.sync-status {
-  font-size: 0.8rem;
-  color: var(--accent-green);
+.btn-float-back:hover,
+.btn-float-back:focus,
+.btn-float-back:active,
+.player-container:hover .btn-float-back {
+  opacity: 1;
+  background: rgba(22, 24, 36, 0.95);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 14px rgba(0, 242, 254, 0.4);
 }
 
-.player-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.btn-float-back:active {
+  transform: scale(0.96);
 }
 
 .emulator-viewport {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  position: relative;
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -503,8 +603,10 @@ body {
 }
 
 #game-container {
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 /* Modal Overlay */

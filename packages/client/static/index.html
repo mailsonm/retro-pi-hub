@@ -53,6 +53,23 @@
           <button class="filter-btn" data-system="sega32x">Sega 32X</button>
           <button class="filter-btn" data-system="n64">N64</button>
         </div>
+        <div class="filter-chips-bar" id="extra-filters">
+          <button class="filter-chip" id="filter-chip-ptbr" data-filter="ptbr">🇧🇷 Traduzidos PT-BR</button>
+          <button class="filter-chip" id="filter-chip-multiplayer" data-filter="multiplayer">👥 2P+ Multijogador</button>
+          <select id="genre-select" class="genre-select-dropdown">
+            <option value="all">🎮 Todos os Gêneros</option>
+            <option value="Platform">Plataforma</option>
+            <option value="Action">Ação</option>
+            <option value="Adventure">Aventura</option>
+            <option value="Role-Playing">RPG</option>
+            <option value="Fight">Luta</option>
+            <option value="Race">Corrida</option>
+            <option value="Sports">Esportes</option>
+            <option value="Shoot">Shoot 'em up</option>
+            <option value="Puzzle">Puzzle</option>
+            <option value="Strategy">Estratégia</option>
+          </select>
+        </div>
       </div>
 
       <div class="stats-bar">
@@ -73,30 +90,17 @@
         <span id="active-game-system" class="sys-badge">SNES</span>
       </div>
       <div class="active-game-buttons">
+        <button id="btn-netplay-open" class="btn btn-netplay btn-sm">👥 2P Netplay</button>
         <button id="btn-resume-game" class="btn btn-primary btn-sm">▶ Retomar Jogo</button>
         <button id="btn-close-active-game" class="btn btn-secondary btn-sm">✕ Salvar e Sair</button>
       </div>
     </div>
 
-    <!-- Player View (Fullscreen / Modal) -->
+    <!-- Player View (Clean Canvas + Floating Auto-Hiding Back Button) -->
     <section id="player-view" class="player-container hidden">
-      <div class="player-topbar">
-        <button id="btn-back-catalog" class="btn btn-secondary" title="Minimizar para o catálogo">← Catálogo</button>
-        
-        <div class="player-game-info">
-          <span id="player-game-title" class="player-title">Jogo</span>
-          <span id="player-sync-status" class="sync-status">💾 Pronto</span>
-        </div>
-
-        <div class="player-actions">
-          <button id="btn-controls-settings" class="btn btn-secondary btn-sm" title="Mapear Teclado e Gamepad">⚙️ Controles</button>
-          <button id="btn-save-state" class="btn btn-secondary btn-sm" title="Salvar Estado Rápido">💾 Save State</button>
-          <button id="btn-load-state" class="btn btn-secondary btn-sm" title="Carregar Estado Rápido">📂 Load State</button>
-          <button id="btn-netplay-open" class="btn btn-netplay btn-sm">👥 2P Netplay</button>
-          <button id="btn-fullscreen" class="btn btn-icon" title="Tela Cheia">⛶</button>
-          <button id="btn-quit-game" class="btn btn-danger btn-sm" title="Encerrar Sessão">✕ Sair</button>
-        </div>
-      </div>
+      <button id="btn-float-back" class="btn-float-back" title="Voltar ao Catálogo">
+        ‹ Catálogo
+      </button>
 
       <div class="emulator-viewport" id="emulator-viewport">
         <div id="game-container"></div>
@@ -176,6 +180,17 @@
               <span>Exibir controle touch na tela do celular</span>
             </label>
             <p class="section-hint">Desmarque se estiver usando um controle físico Bluetooth (Xbox, DualShock, 8BitDo) no celular.</p>
+          </div>
+
+          <div class="form-section">
+            <h4>⚡ Motor GBA (Desempenho Mobile 60 FPS)</h4>
+            <label for="setting-gba-core">Núcleo Game Boy Advance:</label>
+            <select id="setting-gba-core" class="form-select">
+              <option value="vbam">VBA-M (Recomendado - 60 FPS fluído)</option>
+              <option value="gpsp">gpSP (Ultraleve para celulares básicos)</option>
+              <option value="mgba">mGBA (Ciclo-preciso - mais pesado)</option>
+            </select>
+            <p class="section-hint">Se jogos de GBA ficarem lentos (~45 FPS) no smartphone, selecione VBA-M ou gpSP.</p>
           </div>
 
           <button id="btn-save-settings" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Salvar Configurações</button>

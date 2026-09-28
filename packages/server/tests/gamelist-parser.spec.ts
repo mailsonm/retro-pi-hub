@@ -21,6 +21,15 @@ describe('GamelistParserService', () => {
     <releasedate>19901121T000000</releasedate>
     <developer>Nintendo EAD</developer>
     <publisher>Nintendo</publisher>
+    <players>1-2</players>
+    <lang>pt-br</lang>
+  </game>
+  <game>
+    <path>./Aerostar (USA, Europe).gb</path>
+    <name>Aerostar</name>
+    <desc>Vertical shoot em up.</desc>
+    <thumbnail>./images/Aerostar (USA, Europe)-thumb.png</thumbnail>
+    <players>1</players>
   </game>
   <game>
     <path>./Chrono Trigger (USA).smc</path>
@@ -55,6 +64,14 @@ describe('GamelistParserService', () => {
     expect(smw?.rating).toBe(0.95);
     expect(smw?.developer).toBe('Nintendo EAD');
     expect(smw?.publisher).toBe('Nintendo');
+    expect(smw?.players).toBe(2);
+    expect(smw?.lang).toBe('pt-br');
+
+    const aero = parser.getGameMetadata('Aerostar (USA, Europe).gb');
+    expect(aero).toBeDefined();
+    expect(aero?.thumbnail).toBe('images/Aerostar (USA, Europe)-thumb.png');
+    expect(aero?.image).toBeUndefined();
+    expect(aero?.players).toBe(1);
   });
 
   it('should match game even if extension differs in path vs actual file', async () => {

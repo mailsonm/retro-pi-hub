@@ -74,6 +74,13 @@ export interface RomItemDTO {
   fileSizeBytes: number;
   hasSramSave: boolean;
   boxartUrl?: string;
+  thumbnailUrl?: string;
+  description?: string;
+  genre?: string;
+  rating?: number;
+  releaseDate?: string;
+  developer?: string;
+  publisher?: string;
 }
 
 export interface SystemCatalogDTO {

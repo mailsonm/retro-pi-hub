@@ -6,6 +6,7 @@ import {
   SystemCatalogDTO,
   RomItemDTO
 } from '@retro-pi-hub/shared';
+import { GamelistParserService } from './gamelist-parser.service.js';
 
 export interface CatalogServiceOptions {
   romsDir: string;
@@ -44,6 +45,10 @@ export class CatalogService {
         continue;
       }
 
+      const gamelistPath = path.join(systemPath, 'gamelist.xml');
+      const parser = new GamelistParserService();
+      await parser.load(gamelistPath);
+
       const romFiles = await fs.readdir(systemPath);
       const games: RomItemDTO[] = [];
 
@@ -66,14 +71,50 @@ export class CatalogService {
 
         const baseName = path.basename(file, ext);
         const hasSram = await this.checkSramExists(entry, baseName, file);
+        const meta = parser.getGameMetadata(file);
+
+        let boxartUrl: string | undefined;
+        let thumbnailUrl: string | undefined;
+
+        if (meta?.image) {
+          boxartUrl = `/api/media/${entry}/${meta.image}`;
+        }
+        if (meta?.thumbnail) {
+          thumbnailUrl = `/api/media/${entry}/${meta.thumbnail}`;
+        }
+
+        // Fallback artwork lookup if not in gamelist
+        if (!boxartUrl) {
+          const possibleThumbs = [
+            `images/${baseName}-image.jpg`,
+            `images/${baseName}-thumb.jpg`,
+            `images/${baseName}.png`,
+            `media/images/${baseName}.png`,
+            `media/box3d/${baseName}.png`
+          ];
+          for (const rel of possibleThumbs) {
+            if (await this.fileExists(path.join(systemPath, rel))) {
+              boxartUrl = `/api/media/${entry}/${rel}`;
+              break;
+            }
+          }
+        }
 
         games.push({
           id: `${entry}-${this.slugify(baseName)}`,
           system: entry,
-          title: baseName,
+          title: meta?.name || baseName,
           fileName: file,
           fileSizeBytes: fileStat.size,
-          hasSramSave: hasSram
+          hasSramSave: hasSram,
+          boxartUrl,
+          thumbnailUrl: thumbnailUrl || boxartUrl,
+          description: meta?.desc,
+          genre: meta?.genre,
+          rating: meta?.rating,
+          releaseDate: meta?.releaseDate,
+          developer: meta?.developer,
+          publisher: meta?.publisher
         });
       }
 
@@ -110,6 +151,15 @@ export class CatalogService {
     }
 
     return false;
+  }
+
+  private async fileExists(p: string): Promise<boolean> {
+    try {
+      const s = await fs.stat(p);
+      return s.isFile();
+    } catch {
+      return false;
+    }
   }
 
   private slugify(text: string): string {

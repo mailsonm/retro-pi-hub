@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="app">
@@ -25,6 +25,7 @@
         </div>
       </div>
       <div class="header-status">
+        <button id="btn-open-settings" class="btn btn-settings" title="Configurações e RetroAchievements">⚙️ Ajustes</button>
         <div id="tv-status-badge" class="badge badge-tv-idle">📺 TV Livre</div>
         <div class="badge badge-online">● Online</div>
       </div>
@@ -39,22 +40,23 @@
     <main id="catalog-view" class="container">
       <div class="controls-bar">
         <div class="search-box">
-          <input type="text" id="search-input" placeholder="Buscar jogo..." autocomplete="off">
+          <input type="text" id="search-input" placeholder="Buscar jogo por título, gênero ou ano..." autocomplete="off">
         </div>
         <div class="system-filters" id="system-filters">
           <button class="filter-btn active" data-system="all">Todos</button>
           <button class="filter-btn" data-system="snes">SNES</button>
           <button class="filter-btn" data-system="gba">GBA</button>
-          <button class="filter-btn" data-system="megadrive">Mega Drive</button>
-          <button class="filter-btn" data-system="nes">NES</button>
-          <button class="filter-btn" data-system="gb">Game Boy</button>
-          <button class="filter-btn" data-system="mastersystem">Master System</button>
           <button class="filter-btn" data-system="psx">PSX</button>
+          <button class="filter-btn" data-system="nes">NES</button>
+          <button class="filter-btn" data-system="mastersystem">Master System</button>
+          <button class="filter-btn" data-system="gb">Game Boy</button>
+          <button class="filter-btn" data-system="sega32x">Sega 32X</button>
+          <button class="filter-btn" data-system="n64">N64</button>
         </div>
       </div>
 
       <div class="stats-bar">
-        <span id="game-counter">Carregando catálogo...</span>
+        <span id="game-counter">Carregando catálogo com capas...</span>
       </div>
 
       <div class="game-grid" id="game-grid">
@@ -62,60 +64,72 @@
       </div>
     </main>
 
+    <!-- Floating Active Game Bottom Bar (When player is minimized) -->
+    <div id="active-game-banner" class="active-game-bar hidden">
+      <div class="active-game-meta">
+        <span class="active-dot">●</span>
+        <span class="active-label">Jogo Ativo:</span>
+        <strong id="active-game-name" class="active-title">Nenhum</strong>
+        <span id="active-game-system" class="sys-badge">SNES</span>
+      </div>
+      <div class="active-game-buttons">
+        <button id="btn-resume-game" class="btn btn-primary btn-sm">▶ Retomar Jogo</button>
+        <button id="btn-close-active-game" class="btn btn-secondary btn-sm">✕ Salvar e Sair</button>
+      </div>
+    </div>
+
     <!-- Player View (Fullscreen / Modal) -->
     <section id="player-view" class="player-container hidden">
       <div class="player-topbar">
-        <button id="btn-back-catalog" class="btn btn-secondary">← Catálogo</button>
+        <button id="btn-back-catalog" class="btn btn-secondary" title="Minimizar para o catálogo">← Catálogo</button>
+        
         <div class="player-game-info">
           <span id="player-game-title" class="player-title">Jogo</span>
           <span id="player-sync-status" class="sync-status">💾 Pronto</span>
         </div>
+
         <div class="player-actions">
-          <button id="btn-netplay-open" class="btn btn-netplay">👥 2P Netplay</button>
-          <button id="btn-fullscreen" class="btn btn-icon">⛶</button>
+          <button id="btn-controls-settings" class="btn btn-secondary btn-sm" title="Mapear Teclado e Gamepad">⚙️ Controles</button>
+          <button id="btn-save-state" class="btn btn-secondary btn-sm" title="Salvar Estado Rápido">💾 Save State</button>
+          <button id="btn-load-state" class="btn btn-secondary btn-sm" title="Carregar Estado Rápido">📂 Load State</button>
+          <button id="btn-netplay-open" class="btn btn-netplay btn-sm">👥 2P Netplay</button>
+          <button id="btn-fullscreen" class="btn btn-icon" title="Tela Cheia">⛶</button>
+          <button id="btn-quit-game" class="btn btn-danger btn-sm" title="Encerrar Sessão">✕ Sair</button>
         </div>
       </div>
 
       <div class="emulator-viewport" id="emulator-viewport">
         <div id="game-container"></div>
       </div>
+    </section>
 
-      <!-- On-Screen Virtual Gamepad (Mobile / Touch Devices) -->
-      <div id="virtual-gamepad" class="virtual-gamepad">
-        <div class="dpad-container">
-          <button class="dpad-btn dpad-up" data-btn="up">▲</button>
-          <div class="dpad-row">
-            <button class="dpad-btn dpad-left" data-btn="left">◀</button>
-            <div class="dpad-center"></div>
-            <button class="dpad-btn dpad-right" data-btn="right">▶</button>
+    <!-- Game Details Modal -->
+    <div id="game-details-modal" class="modal-overlay hidden">
+      <div class="modal-card modal-details-card">
+        <button id="btn-details-close" class="modal-close">&times;</button>
+        <div class="details-body">
+          <div class="details-cover-container">
+            <img id="details-cover" src="" alt="Capa do Jogo" class="details-cover">
           </div>
-          <button class="dpad-btn dpad-down" data-btn="down">▼</button>
-        </div>
-
-        <div class="center-buttons">
-          <button class="pill-btn" data-btn="select">SELECT</button>
-          <button class="pill-btn" data-btn="start">START</button>
-        </div>
-
-        <div class="action-buttons">
-          <div class="action-row">
-            <button class="action-btn btn-x" data-btn="x">X</button>
+          <div class="details-info">
+            <div class="details-header">
+              <span id="details-system-badge" class="sys-badge">SNES</span>
+              <span id="details-filesize" class="file-size">1.5 MB</span>
+            </div>
+            <h2 id="details-title" class="details-title">Título do Jogo</h2>
+            <div class="details-metadata-tags">
+              <span id="details-genre" class="meta-tag">Gênero</span>
+              <span id="details-year" class="meta-tag">Ano</span>
+              <span id="details-developer" class="meta-tag">Desenvolvedora</span>
+            </div>
+            <p id="details-desc" class="details-description">Sinopse não disponível.</p>
+            <div class="details-actions">
+              <button id="btn-details-play" class="btn btn-primary btn-lg">▶ Iniciar Jogo</button>
+            </div>
           </div>
-          <div class="action-row">
-            <button class="action-btn btn-y" data-btn="y">Y</button>
-            <button class="action-btn btn-a" data-btn="a">A</button>
-          </div>
-          <div class="action-row">
-            <button class="action-btn btn-b" data-btn="b">B</button>
-          </div>
-        </div>
-
-        <div class="shoulder-buttons">
-          <button class="shoulder-btn shoulder-l" data-btn="l">L</button>
-          <button class="shoulder-btn shoulder-r" data-btn="r">R</button>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- 2P Netplay Modal -->
     <div id="netplay-modal" class="modal-overlay hidden">
@@ -133,6 +147,38 @@
 
         <div class="netplay-status" id="netplay-status-msg">
           Aguardando conexão P2P do Jogador 2...
+        </div>
+      </div>
+    </div>
+
+    <!-- Hub Settings & RetroAchievements Modal -->
+    <div id="settings-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <button id="btn-settings-close" class="modal-close">&times;</button>
+        <h3>⚙️ Ajustes do Retro-Pi Hub</h3>
+        
+        <div class="settings-form">
+          <div class="form-section">
+            <h4>🏆 RetroAchievements (Conquistas)</h4>
+            <p class="section-hint">Insira seus dados de <a href="https://retroachievements.org/" target="_blank" rel="noopener">RetroAchievements.org</a> para desbloquear troféus nos jogos compatíveis.</p>
+            
+            <label for="ra-username">Usuário RA:</label>
+            <input type="text" id="ra-username" placeholder="Seu nome de usuário">
+
+            <label for="ra-token">Web API Key / Token:</label>
+            <input type="password" id="ra-token" placeholder="Chave obtida nas configurações do perfil RA">
+          </div>
+
+          <div class="form-section">
+            <h4>📱 Controles no Celular</h4>
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-touch-controls" checked>
+              <span>Exibir controle touch na tela do celular</span>
+            </label>
+            <p class="section-hint">Desmarque se estiver usando um controle físico Bluetooth (Xbox, DualShock, 8BitDo) no celular.</p>
+          </div>
+
+          <button id="btn-save-settings" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Salvar Configurações</button>
         </div>
       </div>
     </div>

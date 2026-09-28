@@ -9,6 +9,7 @@ import { romRoutes } from './routes/rom.routes.js';
 import { TvLockService } from './services/tv-lock.service.js';
 import { SaveSyncService } from './services/save-sync.service.js';
 import { saveRoutes } from './routes/save.routes.js';
+import { mediaRoutes } from './routes/media.routes.js';
 import { NetplaySignalingManager } from './signaling/netplay-signaling.js';
 
 export interface AppOptions {
@@ -71,6 +72,7 @@ export function buildApp(options: AppOptions): FastifyInstance {
   app.register(catalogRoutes, { catalogService });
   app.register(romRoutes, { romStreamService });
   app.register(saveRoutes, { tvLockService, saveSyncService });
+  app.register(mediaRoutes, { romsDir: options.romsDir });
 
   app.register(async (instance) => {
     instance.get('/ws/netplay', { websocket: true }, (socket) => {

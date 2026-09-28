@@ -1,0 +1,24 @@
+{
+  "name": "@retro-pi-hub/server",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Fastify backend daemon for Retro-Pi Hub",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/static": "^8.0.3",
+    "@fastify/websocket": "^11.0.1",
+    "@retro-pi-hub/shared": "*",
+    "fastify": "^5.2.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.2"
+  }
+}

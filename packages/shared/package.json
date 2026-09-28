@@ -1,0 +1,21 @@
+{
+  "name": "@retro-pi-hub/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared DTOs, interfaces, and contracts for Retro-Pi Hub",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

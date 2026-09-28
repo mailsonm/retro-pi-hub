@@ -1,0 +1,22 @@
+{
+  "name": "retro-pi-hub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Distributed local-network retro gaming hub with PWA, EmulatorJS, and WebRTC Netplay",
+  "author": "Mailson Maia Alves <59203034+mailsonm@users.noreply.github.com>",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc --build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,28 @@
+[Unit]
+Description=Retro-Pi Hub Server Daemon (PWA, EmulatorJS & Netplay)
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/retro-pi-hub
+ExecStart=/usr/bin/npm start --workspace=@retro-pi-hub/server
+Restart=always
+RestartSec=5
+KillMode=process
+
+# Environment configuration
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOST=0.0.0.0
+Environment=ROMS_DIR=/home/pi/RetroPie/roms
+Environment=SAVES_DIR=/home/pi/RetroPie/roms
+Environment=TV_LOCK_FILE=/dev/shm/retroarch_active.json
+
+# Process priorities
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

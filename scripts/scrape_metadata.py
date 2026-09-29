@@ -10,6 +10,7 @@ import sys
 import re
 import time
 import json
+import hashlib
 import argparse
 import urllib.request
 import urllib.parse
@@ -57,6 +58,30 @@ def clean_game_title(filename):
     clean = re.sub(r'\s+', ' ', clean).strip()
     return clean or base
 
+GAME_ALIASES = {
+    # Master System Hacks & Homebrews
+    'Treinamento Do Guerreiro Lobo': 'Wonder Boy in Monster Land',
+    'Turma da Monica 3 v01': 'Turma da Monica em - O Resgate',
+    'Turma da Monica 3': 'Turma da Monica em - O Resgate',
+    'Monica 3': 'Turma da Monica em - O Resgate',
+    'Magali no Castelo do Dragao': 'Monica no Castelo do Dragao',
+    'Rodrigo O Resgate': 'Turma da Monica em - O Resgate',
+    # SNES Soccer Hacks & Title Variations
+    'International Super Star Soccer Deluxe - Ronaldinho Soccer 97': 'International Superstar Soccer Deluxe',
+    'International Super Star Soccer Deluxe - Futebol Brasileiro 2007': 'International Superstar Soccer Deluxe',
+    'International Super Star Soccer Deluxe - Futebol Brasileiro 2008': 'International Superstar Soccer Deluxe',
+    'International Super Star Soccer Deluxe - World Cup France 98': 'International Superstar Soccer Deluxe',
+    'Death and Return of Superman The': 'Death and Return of Superman, The',
+    # PSX Variations
+    'Spyro 3 Year Of The Dragon': 'Spyro - Year of the Dragon',
+    'Spyro the Dragon 2 - Ripto\'s Rage': 'Spyro 2 - Ripto\'s Rage!',
+    'Tomb Raider 4': 'Tomb Raider - The Last Revelation',
+    'Winning Eleven - World Soccer 2002': 'World Soccer Winning Eleven 2002',
+    'Megaman Legends 2': 'Mega Man Legends 2',
+    'Resident Evil 2 - Dual Shock': 'Resident Evil 2 - Dual Shock Ver.',
+    'Rampage World Tour [U]': 'Rampage - World Tour',
+}
+
 try:
     import requests
 except ImportError:
@@ -72,7 +97,7 @@ def fetch_repo_tree(repo_name):
         if requests:
             res = requests.get(url, headers=HEADERS, timeout=15)
             if res.status_code == 200:
-                data = res.json()
+                data = json.loads(res.content.decode('utf-8'))
                 tree = [x['path'].replace('Named_Boxarts/', '') for x in data.get('tree', []) if x['path'].startswith('Named_Boxarts/')]
                 REPO_TREES[repo_name] = tree
                 print(f"Loaded index of {len(tree)} boxarts for {repo_name}")
@@ -107,33 +132,42 @@ def generate_boxart_candidates(repo_name, base_name, clean_title):
     tree = fetch_repo_tree(repo_name)
     base_url = f"https://raw.githubusercontent.com/libretro-thumbnails/{repo_name}/master/Named_Boxarts/"
     
+    clean_title = GAME_ALIASES.get(clean_title, clean_title)
+
     if tree:
         norm_title = re.sub(r'[^a-z0-9]', '', clean_title.lower())
         title_prefix = clean_title.split(' - ')[0].split(':')[0].strip()
         norm_prefix = re.sub(r'[^a-z0-9]', '', title_prefix.lower())
         matched = []
         
-        # 1. Exact base_name
+        # Phase 1: Exact base_name or exact clean_title
         for f in tree:
-            if f == f"{base_name}.png":
+            if f == f"{base_name}.png" or f == f"{clean_title}.png":
                 matched.append(f)
                 
-        # 2. Starts with clean_title or normalized equality or prefix
-        for f in tree:
-            if f in matched:
-                continue
-            f_lower = f.lower()
-            if f_lower.startswith(clean_title.lower() + ' (') or f_lower == f"{clean_title.lower()}.png":
-                matched.append(f)
-                continue
-            
-            f_clean = re.sub(r'\s*\([^\)]*\)\s*', ' ', os.path.splitext(f)[0])
-            norm_f = re.sub(r'[^a-z0-9]', '', f_clean.lower())
-            if norm_f == norm_title or (len(norm_title) >= 4 and (norm_title in norm_f or norm_f in norm_title)):
-                matched.append(f)
-                continue
-            if len(norm_prefix) >= 4 and (norm_f == norm_prefix or norm_f.startswith(norm_prefix)):
-                matched.append(f)
+        # Phase 2: Starts with clean_title (e.g. "Game Name (USA).png")
+        if not matched:
+            for f in tree:
+                f_lower = f.lower()
+                if f_lower.startswith(clean_title.lower() + ' (') or f_lower.startswith(clean_title.lower() + ' _'):
+                    matched.append(f)
+                    
+        # Phase 3: Normalized full title equality (ignoring punctuation, spaces, symbols)
+        if not matched:
+            for f in tree:
+                f_clean = re.sub(r'\s*\([^\)]*\)\s*', ' ', os.path.splitext(f)[0])
+                norm_f = re.sub(r'[^a-z0-9]', '', f_clean.lower())
+                if norm_f == norm_title:
+                    matched.append(f)
+                    
+        # Phase 4: Normalized prefix matching (REQUIRES both to be >= 5 chars and startswith)
+        if not matched:
+            for f in tree:
+                f_clean = re.sub(r'\s*\([^\)]*\)\s*', ' ', os.path.splitext(f)[0])
+                norm_f = re.sub(r'[^a-z0-9]', '', f_clean.lower())
+                if len(norm_prefix) >= 5 and len(norm_f) >= 5:
+                    if norm_f.startswith(norm_prefix) or norm_prefix.startswith(norm_f):
+                        matched.append(f)
                 
         matched.sort(key=score_boxart_candidate)
         if matched:
@@ -290,6 +324,19 @@ def process_system(roms_dir, system):
         # Check Artwork
         img_elem = game_elem.find('image')
         has_boxart = bool(img_elem is not None and img_elem.text and os.path.exists(os.path.join(sys_dir, img_elem.text.replace('./', ''))))
+
+        # Self-healing: remove misassigned 'D' boxart from games that are not 'D'
+        if has_boxart and clean_title != 'D':
+            current_abs = os.path.join(sys_dir, img_elem.text.replace('./', ''))
+            try:
+                with open(current_abs, 'rb') as fp:
+                    if hashlib.md5(fp.read()).hexdigest() == 'cf5ae3ab47bc3d88d4aa21c73f257921':
+                        print(f"  [Clean] Removing misassigned 'D' boxart from {file_name}")
+                        os.remove(current_abs)
+                        has_boxart = False
+                        modified = True
+            except Exception:
+                pass
 
         target_img_rel = f"./images/{base_name}-image.png"
         target_img_abs = os.path.join(sys_dir, 'images', f"{base_name}-image.png")

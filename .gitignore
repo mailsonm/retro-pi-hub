@@ -4,3 +4,5 @@ dist/
 *.log
 .system_generated/
 coverage/
+__pycache__/
+*.pyc

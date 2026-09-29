@@ -57,7 +57,69 @@ def clean_game_title(filename):
     clean = re.sub(r'\s+', ' ', clean).strip()
     return clean or base
 
+REPO_TREES = {}
+
+def fetch_repo_tree(repo_name):
+    if repo_name in REPO_TREES:
+        return REPO_TREES[repo_name]
+    try:
+        url = f"https://api.github.com/repos/libretro-thumbnails/{repo_name}/git/trees/master?recursive=1"
+        req = urllib.request.Request(url, headers=HEADERS)
+        with urllib.request.urlopen(req, timeout=12) as r:
+            data = json.loads(r.read().decode('utf-8'))
+            tree = [x['path'].replace('Named_Boxarts/', '') for x in data.get('tree', []) if x['path'].startswith('Named_Boxarts/')]
+            REPO_TREES[repo_name] = tree
+            print(f"Loaded index of {len(tree)} boxarts for {repo_name}")
+            return tree
+    except Exception as e:
+        print(f"Notice: Using static candidates for {repo_name} ({e})")
+        REPO_TREES[repo_name] = []
+        return []
+
+def score_boxart_candidate(name):
+    lower = name.lower()
+    score = 0
+    if '(brazil)' in lower: score -= 20
+    elif '(usa' in lower: score -= 15
+    elif '(world)' in lower: score -= 12
+    elif '(europe' in lower: score -= 10
+    elif '(japan' in lower: score += 5
+    if 'beta' in lower: score += 30
+    if 'proto' in lower: score += 30
+    if 'unl' in lower: score += 40
+    return score
+
 def generate_boxart_candidates(repo_name, base_name, clean_title):
+    tree = fetch_repo_tree(repo_name)
+    base_url = f"https://raw.githubusercontent.com/libretro-thumbnails/{repo_name}/master/Named_Boxarts/"
+    
+    if tree:
+        norm_title = re.sub(r'[^a-z0-9]', '', clean_title.lower())
+        matched = []
+        
+        # 1. Exact base_name
+        for f in tree:
+            if f == f"{base_name}.png":
+                matched.append(f)
+                
+        # 2. Starts with clean_title or normalized equality
+        for f in tree:
+            if f in matched:
+                continue
+            f_lower = f.lower()
+            if f_lower.startswith(clean_title.lower() + ' (') or f_lower == f"{clean_title.lower()}.png":
+                matched.append(f)
+                continue
+            
+            f_clean = re.sub(r'\s*\([^\)]*\)\s*', ' ', os.path.splitext(f)[0])
+            norm_f = re.sub(r'[^a-z0-9]', '', f_clean.lower())
+            if norm_f == norm_title or (len(norm_title) > 5 and norm_title in norm_f):
+                matched.append(f)
+                
+        matched.sort(key=score_boxart_candidate)
+        if matched:
+            return [(base_url + urllib.parse.quote(cand), cand) for cand in matched[:8]]
+
     candidates = [
         f"{base_name}.png",
         f"{clean_title} (USA).png",
@@ -82,12 +144,10 @@ def generate_boxart_candidates(repo_name, base_name, clean_title):
             alt = clean_title.replace(ara, rom)
             candidates.extend([f"{alt} (USA).png", f"{alt} (Europe).png", f"{alt}.png"])
 
-    # Disc variation (e.g., PaRappa the Rapper (USA) (Disc 1))
     candidates.append(f"{clean_title} (USA) (Disc 1).png")
     candidates.append(f"{clean_title} (Europe) (Disc 1).png")
 
     urls = []
-    base_url = f"https://raw.githubusercontent.com/libretro-thumbnails/{repo_name}/master/Named_Boxarts/"
     for cand in candidates:
         quoted = urllib.parse.quote(cand)
         urls.append((base_url + quoted, cand))

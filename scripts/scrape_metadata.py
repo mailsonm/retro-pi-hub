@@ -57,6 +57,11 @@ def clean_game_title(filename):
     clean = re.sub(r'\s+', ' ', clean).strip()
     return clean or base
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 REPO_TREES = {}
 
 def fetch_repo_tree(repo_name):
@@ -64,17 +69,26 @@ def fetch_repo_tree(repo_name):
         return REPO_TREES[repo_name]
     try:
         url = f"https://api.github.com/repos/libretro-thumbnails/{repo_name}/git/trees/master?recursive=1"
-        req = urllib.request.Request(url, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=12) as r:
-            data = json.loads(r.read().decode('utf-8'))
-            tree = [x['path'].replace('Named_Boxarts/', '') for x in data.get('tree', []) if x['path'].startswith('Named_Boxarts/')]
-            REPO_TREES[repo_name] = tree
-            print(f"Loaded index of {len(tree)} boxarts for {repo_name}")
-            return tree
+        if requests:
+            res = requests.get(url, headers=HEADERS, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                tree = [x['path'].replace('Named_Boxarts/', '') for x in data.get('tree', []) if x['path'].startswith('Named_Boxarts/')]
+                REPO_TREES[repo_name] = tree
+                print(f"Loaded index of {len(tree)} boxarts for {repo_name}")
+                return tree
+        else:
+            req = urllib.request.Request(url, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read().decode('utf-8'))
+                tree = [x['path'].replace('Named_Boxarts/', '') for x in data.get('tree', []) if x['path'].startswith('Named_Boxarts/')]
+                REPO_TREES[repo_name] = tree
+                print(f"Loaded index of {len(tree)} boxarts for {repo_name}")
+                return tree
     except Exception as e:
         print(f"Notice: Using static candidates for {repo_name} ({e})")
-        REPO_TREES[repo_name] = []
-        return []
+    REPO_TREES[repo_name] = []
+    return []
 
 def score_boxart_candidate(name):
     lower = name.lower()
@@ -95,6 +109,8 @@ def generate_boxart_candidates(repo_name, base_name, clean_title):
     
     if tree:
         norm_title = re.sub(r'[^a-z0-9]', '', clean_title.lower())
+        title_prefix = clean_title.split(' - ')[0].split(':')[0].strip()
+        norm_prefix = re.sub(r'[^a-z0-9]', '', title_prefix.lower())
         matched = []
         
         # 1. Exact base_name
@@ -102,7 +118,7 @@ def generate_boxart_candidates(repo_name, base_name, clean_title):
             if f == f"{base_name}.png":
                 matched.append(f)
                 
-        # 2. Starts with clean_title or normalized equality
+        # 2. Starts with clean_title or normalized equality or prefix
         for f in tree:
             if f in matched:
                 continue
@@ -113,7 +129,10 @@ def generate_boxart_candidates(repo_name, base_name, clean_title):
             
             f_clean = re.sub(r'\s*\([^\)]*\)\s*', ' ', os.path.splitext(f)[0])
             norm_f = re.sub(r'[^a-z0-9]', '', f_clean.lower())
-            if norm_f == norm_title or (len(norm_title) > 5 and norm_title in norm_f):
+            if norm_f == norm_title or (len(norm_title) >= 4 and (norm_title in norm_f or norm_f in norm_title)):
+                matched.append(f)
+                continue
+            if len(norm_prefix) >= 4 and (norm_f == norm_prefix or norm_f.startswith(norm_prefix)):
                 matched.append(f)
                 
         matched.sort(key=score_boxart_candidate)
@@ -160,15 +179,23 @@ def download_boxart(repo_name, base_name, clean_title, dest_path):
     candidates = generate_boxart_candidates(repo_name, base_name, clean_title)
     for url, cand_name in candidates:
         try:
-            req = urllib.request.Request(url, headers=HEADERS)
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                if resp.status == 200:
-                    data = resp.read()
-                    if len(data) > 1024:
-                        with open(dest_path, 'wb') as f:
-                            f.write(data)
-                        print(f"  [Cover ✓] Downloaded boxart from {cand_name}")
-                        return True
+            if requests:
+                resp = requests.get(url, headers=HEADERS, timeout=10)
+                if resp.status_code == 200 and len(resp.content) > 1024:
+                    with open(dest_path, 'wb') as f:
+                        f.write(resp.content)
+                    print(f"  [Cover ✓] Downloaded boxart from {cand_name}")
+                    return True
+            else:
+                req = urllib.request.Request(url, headers=HEADERS)
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    if resp.status == 200:
+                        data = resp.read()
+                        if len(data) > 1024:
+                            with open(dest_path, 'wb') as f:
+                                f.write(data)
+                            print(f"  [Cover ✓] Downloaded boxart from {cand_name}")
+                            return True
         except Exception:
             pass
         time.sleep(0.05)

@@ -395,10 +395,12 @@ async function launchPlayer(game) {
 // 5. Minimize & Resume Handling (Keep-Alive & Auto-Pause)
 function pauseEmulator() {
   try {
-    if (window.EJS_emulator?.gameManager?.pause) {
-      window.EJS_emulator.gameManager.pause();
-    } else if (typeof window.EJS_emulator?.pause === 'function') {
-      window.EJS_emulator.pause();
+    if (window.EJS_emulator) {
+      if (typeof window.EJS_emulator.pause === 'function') {
+        window.EJS_emulator.pause();
+      } else if (!window.EJS_emulator.paused && typeof window.EJS_emulator.togglePlaying === 'function') {
+        window.EJS_emulator.togglePlaying();
+      }
     }
     if (window.EJS_emulator?.audioCtx && window.EJS_emulator.audioCtx.state === 'running') {
       window.EJS_emulator.audioCtx.suspend().catch(() => {});
@@ -410,10 +412,12 @@ function pauseEmulator() {
 
 function resumeEmulator() {
   try {
-    if (window.EJS_emulator?.gameManager?.resume) {
-      window.EJS_emulator.gameManager.resume();
-    } else if (typeof window.EJS_emulator?.resume === 'function') {
-      window.EJS_emulator.resume();
+    if (window.EJS_emulator) {
+      if (typeof window.EJS_emulator.play === 'function') {
+        window.EJS_emulator.play();
+      } else if (window.EJS_emulator.paused && typeof window.EJS_emulator.togglePlaying === 'function') {
+        window.EJS_emulator.togglePlaying();
+      }
     }
     if (window.EJS_emulator?.audioCtx && window.EJS_emulator.audioCtx.state === 'suspended') {
       window.EJS_emulator.audioCtx.resume().catch(() => {});
